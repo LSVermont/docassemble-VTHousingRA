@@ -11,7 +11,7 @@ metadata:
   short title: >-
     Ask landlord for an accommodation
   description: |-
-    This interview helps a tenant write a letter to a landlord to request a reasonable accommodation related to a disability.
+    This tool helps a tenant write a letter to a landlord to request a reasonable accommodation related to a disability.
   can_I_use_this_form: |
     You can use this form if you or someone in your household has a disability and you need a reasonable accommodation from your landlord.
   before_you_start: |
@@ -73,8 +73,6 @@ sections:
   - get_docs: Get your document
 progressive: False
 ---
-
-
   
 #################### Interview order #####################
 comment: |
@@ -93,7 +91,7 @@ code: |
   nav.set_section("request")
   request_subject
   is_animal
-  if is_rent == True:
+  if is_rent_due == True:
     paydate
     duedate_request
   set_progress(40)
@@ -148,7 +146,7 @@ subquestion: |
   
   <i class="fas fa-file-text fa-2x"></i> This tool helps you write a letter to your landlord to request a reasonable accommodation related to a disability.
 
-  You can use this interview if you or someone in your home has a disability and you need a change to rules, policies or services in your housing.
+  You can use this tool if you or someone in your home has a disability and you need a change to rules, policies or services in your housing.
   
   <i class="fas fa-clock fa-2x"></i> It may take you about 10 minutes to complete this.
   
@@ -199,6 +197,8 @@ terms:
 id: No Disability Offramp
 event: no_disability
 question: | 
+  Stop
+subquestion: |
   This form is only for tenants who need a disability-related housing accommodation. 
   
   If that does not fit your situation, you can exit now.
@@ -225,19 +225,29 @@ id: Accommodation requests
 question: |
   What types of accommodations do you need?
 fields:
+  - "Accessible shower or bath": is_bath
+    datatype: yesno
+  - "I live in subsidized housing": is_subsidized
+    datatype: yesnoradio
+    show if: is_bath
+  - "Ramp": is_ramp
+    datatype: yesno
+  - "I live in subsidized housing": is_subsidized
+    datatype: yesnoradio
+    show if: is_ramp
   - "Assistance animal": is_animal
     datatype: yesno
     help: |
       This includes service animals and emotional support animals.
   - "Reserved parking space": is_parking
     datatype: yesno
-  - "Change rent due date to a day after my public benefits come in": is_rent
+  - "Change rent due date to a day after my public benefits come in": is_rent_due
     datatype: yesno
-  - "Something else": is_custom
+  - "Something else. (You can describe it in an upcoming screen.)": is_custom
     datatype: yesno
 validation code: |
-  if not (is_animal or is_parking or is_rent or is_custom):
-    validation_error("Select at least one accommodation.")
+  if not (is_animal or is_ramp or is_parking or is_bath or is_rent_due or is_custom):
+    validation_error("Select at least one.")
 ---
 code: |
   animal_body = "I am requesting permission for an assistance animal to assist with daily living. I understand that our building's rules state a no-pet policy. However, I am requesting that you make a reasonable accommodation in the building's rules to permit an assistance animal in my apartment."
@@ -254,23 +264,19 @@ code: |
     request_body += animal_body + "\n\n"
   if is_parking:
     request_body += parking_body + "\n\n"
-  if is_rent:
+  if is_rent_due:
     request_body += rent_body + "\n\n"
   if is_custom:
     request_body += custom_body + "\n\n"
 ---
 id: Fixed income date
-question: On which day of the month do you receive a disability check or other fixed income?
+question: Date for paying rent
 fields: 
-  - "Enter day of the month as a number": paydate
+  - "On which day of the month do you get a disability check or other fixed income? Enter day of the month as a number.": paydate
     datatype: integer
     min: 1
     max: 31
----
-id: Request rent deadline change details
-question: Which day of the month do you want rent to be due?
-fields: 
-  - "Enter day of the month as a number": duedate_request
+  - "On which day of the month do you want to pay rent? Enter day of the month as a number.": duedate_request
     datatype: integer
     min: 1
     max: 31
@@ -283,7 +289,7 @@ fields:
   - "The change I want is": custom_change
     input type: area
     help: |
-      Example: permission to install a doorbell with a strobe.
+      Example: Permission to install a doorbell with a strobe.
       You can include more than one request.
   - "The reason I need the change is": custom_justification
     input type: area
@@ -298,7 +304,7 @@ question: |
 subquestion: |
   Here is a preview of the accommodation request you entered: 
   
-  **${ custom_body }**
+  **${ fix_punctuation(custom_body) }**
 
   Is this correct?  If yes, click Next. If no, click Undo and edit your request.
 back button: True
@@ -310,7 +316,6 @@ sets:
   - users[0].address.zip
   - users[0].address.unit
   - users[0].address.state
-  - users[0].address.country
 question: |
   What is your address?
   
@@ -320,7 +325,6 @@ fields:
   - I have a mailing address that is different from my street address: users_mailing_address_different
     datatype: yesno
   - Mailing address: users[0].mailing_address.address
-    address autocomplete: True
     show if: users_mailing_address_different
   - Unit: users[0].mailing_address.unit
     required: False
@@ -501,29 +505,29 @@ progress: 100
 ---
 # ALDocument objects specify the metadata for each template
 objects:
-  - reasonableaccommodationsrequesttola_Post_interview_instructions: ALDocument.using(title="NEXT STEPS -- Instructions", filename="reasonableaccommodationsrequesttola_next_steps.docx", enabled=True, has_addendum=False)
-  - reasonableaccommodationsrequesttola_attachment: ALDocument.using(title="Reasonable Accommodations request to landlord", filename="reasonableaccommodationsrequesttola", enabled=True, has_addendum=False, )
+  - accommodation_request_post_interview_instructions: ALDocument.using(title="NEXT STEPS -- Instructions", filename="accommodation_request_next_steps.docx", enabled=True, has_addendum=False)
+  - accommodation_request_letter_attachment: ALDocument.using(title="Reasonable Accommodations request letter", filename="accommodation_request_letter", enabled=True, has_addendum=False, )
 ---
 # Bundles group the ALDocuments into separate downloads, such as for court and for the user
 objects:
-  - al_user_bundle: ALDocumentBundle.using(elements=[reasonableaccommodationsrequesttola_Post_interview_instructions, reasonableaccommodationsrequesttola_attachment], filename="reasonableaccommodationsrequesttola", title="All forms to download for your records", enabled=True)
-  - al_recipient_bundle: ALDocumentBundle.using(elements=[reasonableaccommodationsrequesttola_attachment],  filename="reasonableaccommodationsrequesttola", title="All forms to file", enabled=True)
+  - al_user_bundle: ALDocumentBundle.using(elements=[accommodation_request_post_interview_instructions, accommodation_request_letter_attachment], filename="accommodation_request", title="All forms to download for your records", enabled=True)
+  - al_recipient_bundle: ALDocumentBundle.using(elements=[accommodation_request_letter_attachment],  filename="accommodation_request", title="All forms to file", enabled=True)
 ---
 # Each attachment defines a key in an ALDocument. We use `i` as the placeholder here so the same template is 
 # used for "preview" and "final" keys, and logic in the template checks the value of 
 # `i` to show or hide the user's signature
 attachment:
-  name: Post-interview-Instructions
-  filename: reasonableaccommodationsrequesttola_next_steps
-  docx template file: accommodationrequestletter_next_steps.docx
-  variable name: reasonableaccommodationsrequesttola_Post_interview_instructions[i]
+  name: NEXT STEPS -- Instructions
+  filename: accommodation_request_next_steps
+  docx template file: accommodation_request_next_steps.docx
+  variable name: accommodation_request_post_interview_instructions[i]
   skip undefined: True
   tagged pdf: True
 ---
 attachment:
-  name: reasonableaccommodationsrequesttola
-  filename: reasonableaccommodationsrequesttola
-  variable name: reasonableaccommodationsrequesttola_attachment[i]
+  name: Reasonable Accommodations request to landlord
+  filename: accommodation_request_letter
+  variable name: accommodation_request_letter_attachment[i]
   skip undefined: True
-  docx template file: reasonable-accomodation-request-letter-to-landlord.docx
+  docx template file: accommodation_request_letter.docx
   tagged pdf: True
